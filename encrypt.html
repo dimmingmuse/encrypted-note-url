@@ -16,7 +16,8 @@
     .container { max-width: 32rem; margin: 0 auto; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
     .subtitle { color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem; }
-    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; align-items: center; }
+    .tabs-label { font-size: 0.875rem; color: #94a3b8; margin-right: 0.25rem; }
     .tab {
       padding: 0.5rem 1rem;
       border: none;
@@ -159,17 +160,24 @@
     .info-box ul { margin-left: 1rem; }
     .info-box li { margin-bottom: 0.25rem; }
     .hidden { display: none; }
-    .toggle-btn {
-      margin-top: 0.5rem;
-      padding: 0.25rem 0.5rem;
-      background: #334155;
-      border: none;
-      border-radius: 0.25rem;
-      color: #cbd5e1;
-      font-size: 0.75rem;
-      cursor: pointer;
+    .password-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
     }
-    .toggle-btn:hover { background: #475569; }
+    .password-row input { flex: 1; }
+    .eye-btn {
+      padding: 0.5rem;
+      background: #334155;
+      border: 1px solid #475569;
+      border-radius: 0.5rem;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .eye-btn:hover { background: #475569; color: #cbd5e1; }
     .password-match { font-size: 0.75rem; margin-top: 0.25rem; }
     .password-match.match { color: #34d399; }
     .password-match.no-match { color: #f87171; }
@@ -222,6 +230,7 @@
     <p class="subtitle">Encrypt a short note with a password. Everything happens in your browser.</p>
 
     <div class="tabs">
+      <span class="tabs-label">Mode:</span>
       <button class="tab active" id="tab-encrypt" onclick="switchTab('encrypt')">Encrypt</button>
       <button class="tab" id="tab-decrypt" onclick="switchTab('decrypt')">Decrypt</button>
     </div>
@@ -269,14 +278,19 @@
         </div>
         <div class="field" id="password-field">
           <label for="password-encrypt">Password</label>
-          <input type="password" id="password-encrypt" placeholder="Enter a strong password" oninput="updateStrength()">
+          <div class="password-row">
+            <button type="button" class="eye-btn" id="toggle-visibility" onclick="togglePasswordVisibility()" title="Show password">
+              <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg id="eye-off-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </button>
+            <input type="password" id="password-encrypt" placeholder="Enter a strong password" oninput="updateStrength()">
+          </div>
           <div id="confirm-field">
             <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;">
             <div class="password-match" id="password-match"></div>
           </div>
           <div class="strength-bar" id="strength-bar"></div>
           <div class="strength-label" id="strength-label"></div>
-          <button type="button" class="toggle-btn" id="toggle-visibility" onclick="togglePasswordVisibility()">Show password</button>
         </div>
         <button class="primary encrypt" id="btn-encrypt" onclick="encrypt()">Encrypt &amp; Generate URL</button>
         <div class="result hidden" id="encrypt-result">
@@ -284,7 +298,7 @@
             <span class="result-title">Generated URL:</span>
             <div>
               <button class="copy-btn" onclick="openUrl()" style="margin-right: 0.5rem;">Open</button>
-              <button class="copy-btn" onclick="copyUrl()">Copy</button>
+              <button class="copy-btn" onclick="copyUrl(event)">Copy</button>
             </div>
           </div>
           <div class="url-display" id="generated-url"></div>
@@ -293,7 +307,7 @@
         <div class="secure-area encrypted-area hidden" id="encrypted-content-area">
           <div class="secure-header encrypted">
             <span class="secure-title">🔒 Encrypted Content</span>
-            <button class="copy-btn" onclick="copyEncrypted()">Copy</button>
+            <button class="copy-btn" onclick="copyEncrypted(event)">Copy</button>
           </div>
           <div class="secure-content" id="encrypted-content"></div>
         </div>
@@ -313,7 +327,7 @@
         <div class="secure-area hidden" id="decrypt-result">
           <div class="secure-header">
             <span class="secure-title">🔓 Decrypted Note</span>
-            <button class="copy-btn" onclick="copyDecrypted()">Copy</button>
+            <button class="copy-btn" onclick="copyDecrypted(event)">Copy</button>
           </div>
           <div class="secure-content" id="decrypted-text"></div>
         </div>
@@ -399,6 +413,8 @@
     function togglePasswordVisibility() {
       const pwField = document.getElementById('password-encrypt');
       const confirmFieldWrapper = document.getElementById('confirm-field');
+      const eyeIcon = document.getElementById('eye-icon');
+      const eyeOffIcon = document.getElementById('eye-off-icon');
       const toggleBtn = document.getElementById('toggle-visibility');
       
       if (pwField.type === 'password') {
@@ -407,12 +423,16 @@
         if (confirmFieldWrapper) {
           confirmFieldWrapper.remove();
         }
-        toggleBtn.textContent = 'Hide password';
+        eyeIcon.classList.add('hidden');
+        eyeOffIcon.classList.remove('hidden');
+        toggleBtn.title = 'Hide password';
         passwordVerified = true; // Visible = verified
       } else {
         // Switching to hidden mode (already verified visually)
         pwField.type = 'password';
-        toggleBtn.textContent = 'Show password';
+        eyeIcon.classList.remove('hidden');
+        eyeOffIcon.classList.add('hidden');
+        toggleBtn.title = 'Show password';
         // No confirm field needed - was already verified visually
       }
     }
@@ -420,6 +440,8 @@
     function setVerifiedPasswordState() {
       const pwField = document.getElementById('password-encrypt');
       const confirmFieldWrapper = document.getElementById('confirm-field');
+      const eyeIcon = document.getElementById('eye-icon');
+      const eyeOffIcon = document.getElementById('eye-off-icon');
       const toggleBtn = document.getElementById('toggle-visibility');
       
       // Convert to single hidden password field
@@ -427,7 +449,9 @@
       if (confirmFieldWrapper) {
         confirmFieldWrapper.remove();
       }
-      toggleBtn.textContent = 'Show password';
+      eyeIcon.classList.remove('hidden');
+      eyeOffIcon.classList.add('hidden');
+      toggleBtn.title = 'Show password';
       passwordVerified = true;
     }
 
@@ -615,30 +639,27 @@
       }
     }
 
-    async function copyUrl() {
+    async function copyUrl(e) {
       const url = document.getElementById('generated-url').textContent;
       await navigator.clipboard.writeText(url);
-      const btn = event.target;
-      btn.textContent = '✓ Copied!';
-      setTimeout(() => btn.textContent = 'Copy', 2000);
+      e.target.textContent = '✓ Copied!';
+      setTimeout(() => e.target.textContent = 'Copy', 2000);
       showToast('✓ URL copied to clipboard');
     }
 
-    async function copyDecrypted() {
+    async function copyDecrypted(e) {
       const text = document.getElementById('decrypted-text').textContent;
       await navigator.clipboard.writeText(text);
-      const btn = event.target;
-      btn.textContent = '✓ Copied!';
-      setTimeout(() => btn.textContent = 'Copy', 2000);
+      e.target.textContent = '✓ Copied!';
+      setTimeout(() => e.target.textContent = 'Copy', 2000);
       showToast('✓ Decrypted note copied to clipboard');
     }
 
-    async function copyEncrypted() {
+    async function copyEncrypted(e) {
       const text = document.getElementById('encrypted-content').textContent;
       await navigator.clipboard.writeText(text);
-      const btn = event.target;
-      btn.textContent = '✓ Copied!';
-      setTimeout(() => btn.textContent = 'Copy', 2000);
+      e.target.textContent = '✓ Copied!';
+      setTimeout(() => e.target.textContent = 'Copy', 2000);
       showToast('✓ Encrypted content copied to clipboard');
     }
 
