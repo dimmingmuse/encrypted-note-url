@@ -119,6 +119,32 @@
     .info-box ul { margin-left: 1rem; }
     .info-box li { margin-bottom: 0.25rem; }
     .hidden { display: none; }
+    .toggle-btn {
+      margin-top: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      background: #334155;
+      border: none;
+      border-radius: 0.25rem;
+      color: #cbd5e1;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .toggle-btn:hover { background: #475569; }
+    .password-match { font-size: 0.75rem; margin-top: 0.25rem; }
+    .password-match.match { color: #34d399; }
+    .password-match.no-match { color: #f87171; }
+    button.secondary {
+      width: 100%;
+      margin-top: 0.75rem;
+      padding: 0.5rem;
+      border: 1px solid #475569;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+    button.secondary:hover { background: #1e293b; border-color: #64748b; }
   </style>
 </head>
 <body>
@@ -152,6 +178,10 @@
   </div>
 
   <script>
+    // State for restore functionality
+    let savedNote = null;
+    let passwordVerified = false;
+
     // Generate form fields dynamically to prevent browser tab restore
     function initForms() {
       // Encrypt panel
@@ -161,11 +191,16 @@
           <textarea id="note" placeholder="Enter your secret note..." oninput="updateCharCount()"></textarea>
           <div class="char-count"><span id="char-count">0</span> characters</div>
         </div>
-        <div class="field">
+        <div class="field" id="password-field">
           <label for="password-encrypt">Password</label>
           <input type="password" id="password-encrypt" placeholder="Enter a strong password" oninput="updateStrength()">
+          <div id="confirm-field">
+            <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;">
+            <div class="password-match" id="password-match"></div>
+          </div>
           <div class="strength-bar" id="strength-bar"></div>
           <div class="strength-label" id="strength-label"></div>
+          <button type="button" class="toggle-btn" id="toggle-visibility" onclick="togglePasswordVisibility()">Show password</button>
         </div>
         <button class="primary encrypt" id="btn-encrypt" onclick="encrypt()">Encrypt &amp; Generate URL</button>
         <div class="result hidden" id="encrypt-result">
@@ -179,6 +214,7 @@
           <div class="url-display" id="generated-url"></div>
           <div class="result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
         </div>
+        <button class="secondary hidden" id="btn-restore" onclick="restoreNote()">Restore Note</button>
       `;
 
       // Decrypt panel
@@ -250,6 +286,73 @@
       
       label.textContent = strength.label;
       label.className = 'strength-label ' + strength.color;
+      
+      // Also check match if confirm field exists
+      checkMatch();
+    }
+
+    function checkMatch() {
+      const confirmField = document.getElementById('password-confirm');
+      const matchDiv = document.getElementById('password-match');
+      if (!confirmField || !matchDiv) return;
+      
+      const pw = document.getElementById('password-encrypt').value;
+      const confirm = confirmField.value;
+      
+      if (!confirm) {
+        matchDiv.textContent = '';
+        matchDiv.className = 'password-match';
+      } else if (pw === confirm) {
+        matchDiv.textContent = '✓ Passwords match';
+        matchDiv.className = 'password-match match';
+      } else {
+        matchDiv.textContent = '✗ Passwords do not match';
+        matchDiv.className = 'password-match no-match';
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const pwField = document.getElementById('password-encrypt');
+      const confirmFieldWrapper = document.getElementById('confirm-field');
+      const toggleBtn = document.getElementById('toggle-visibility');
+      
+      if (pwField.type === 'password') {
+        // Switching to visible mode
+        pwField.type = 'text';
+        if (confirmFieldWrapper) {
+          confirmFieldWrapper.remove();
+        }
+        toggleBtn.textContent = 'Hide password';
+        passwordVerified = true; // Visible = verified
+      } else {
+        // Switching to hidden mode (already verified visually)
+        pwField.type = 'password';
+        toggleBtn.textContent = 'Show password';
+        // No confirm field needed - was already verified visually
+      }
+    }
+
+    function setVerifiedPasswordState() {
+      const pwField = document.getElementById('password-encrypt');
+      const confirmFieldWrapper = document.getElementById('confirm-field');
+      const toggleBtn = document.getElementById('toggle-visibility');
+      
+      // Convert to single hidden password field
+      pwField.type = 'password';
+      if (confirmFieldWrapper) {
+        confirmFieldWrapper.remove();
+      }
+      toggleBtn.textContent = 'Show password';
+      passwordVerified = true;
+    }
+
+    function restoreNote() {
+      if (savedNote !== null) {
+        document.getElementById('note').value = savedNote;
+        updateCharCount();
+        document.getElementById('btn-restore').classList.add('hidden');
+        savedNote = null;
+      }
     }
 
     function showError(msg) {
@@ -282,6 +385,7 @@
     async function encrypt() {
       const note = document.getElementById('note').value.trim();
       const password = document.getElementById('password-encrypt').value;
+      const confirmField = document.getElementById('password-confirm');
       const strength = getStrength(password);
 
       hideError();
@@ -294,6 +398,15 @@
       if (strength.score < 3) {
         showError('Please use a stronger password (12+ chars, mixed case, numbers, symbols)');
         return;
+      }
+      
+      // Check password confirmation if not yet verified
+      if (!passwordVerified && confirmField) {
+        const confirm = confirmField.value;
+        if (password !== confirm) {
+          showError('Passwords do not match');
+          return;
+        }
       }
 
       const btn = document.getElementById('btn-encrypt');
@@ -320,6 +433,18 @@
         const url = `${window.location.origin}${window.location.pathname}#${base64}`;
         document.getElementById('generated-url').textContent = url;
         document.getElementById('encrypt-result').classList.remove('hidden');
+        
+        // Save note for restore, clear the field
+        savedNote = note;
+        document.getElementById('note').value = '';
+        updateCharCount();
+        
+        // Convert to verified password state (single hidden field)
+        setVerifiedPasswordState();
+        
+        // Show restore button
+        document.getElementById('btn-restore').classList.remove('hidden');
+        
       } catch (e) {
         showError('Encryption failed: ' + e.message);
       } finally {
