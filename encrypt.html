@@ -151,7 +151,10 @@
       <div class="result hidden" id="encrypt-result">
         <div class="result-header">
           <span class="result-title">Generated URL:</span>
-          <button class="copy-btn" onclick="copyUrl()">Copy</button>
+          <div>
+            <button class="copy-btn" onclick="openUrl()" style="margin-right: 0.5rem;">Open</button>
+            <button class="copy-btn" onclick="copyUrl()">Copy</button>
+          </div>
         </div>
         <div class="url-display" id="generated-url"></div>
         <div class="result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
@@ -375,6 +378,11 @@
       const btn = event.target;
       btn.textContent = '✓ Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
+
+    function openUrl() {
+      const url = document.getElementById('generated-url').textContent;
+      window.open(url, '_blank');
     }
   </script>
 </body>
