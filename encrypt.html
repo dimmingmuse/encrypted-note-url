@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🔐 Encrypted Note</title>
+  <title>Note Encryption Tool</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -15,7 +15,9 @@
     }
     .container { max-width: 32rem; margin: 0 auto; }
     h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    h1:focus { outline: none; }
     .subtitle { color: #cbd5e1; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .subtitle:focus { outline: 2px solid #10b981; outline-offset: 2px; border-radius: 0.25rem; }
     .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; align-items: center; }
     .tabs-label { font-size: 0.875rem; color: #cbd5e1; margin-right: 0.25rem; }
     .tab {
@@ -76,6 +78,7 @@
       border: 1px solid #475569;
       border-radius: 0.5rem;
     }
+    .result:focus { outline: 2px solid #10b981; outline-offset: 2px; }
     .result.success { border-color: #10b981; }
     .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
     .result-title { font-size: 0.875rem; color: #34d399; }
@@ -110,6 +113,7 @@
       border: 1px solid #10b981;
       background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
     }
+    .secure-area:focus { outline: 2px solid #10b981; outline-offset: 2px; }
     .secure-header {
       display: flex;
       justify-content: space-between;
@@ -126,6 +130,7 @@
       border-color: #3b82f6;
       background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
     }
+    .secure-area.encrypted-area:focus { outline-color: #3b82f6; }
     .secure-header.encrypted .secure-title {
       color: #60a5fa;
     }
@@ -153,6 +158,7 @@
       color: #fca5a5;
       font-size: 0.875rem;
     }
+    .error:focus { outline: 2px solid #fca5a5; outline-offset: 2px; }
     .info-box {
       margin-top: 2rem;
       padding: 1rem;
@@ -161,6 +167,7 @@
       font-size: 0.75rem;
       color: #cbd5e1;
     }
+    .info-box:focus { outline: 2px solid #10b981; outline-offset: 2px; }
     .info-box strong { display: block; margin-bottom: 0.5rem; }
     .info-box ul { margin-left: 1rem; }
     .info-box li { margin-bottom: 0.25rem; }
@@ -213,6 +220,7 @@
     }
     .small-btn:hover { background: #475569; color: #f1f5f9; }
     .error-action-row { text-align: center; margin-top: 0.5rem; }
+    .error + .error-action-row { margin-top: 0.5rem; }
     .error-action {
       padding: 0.25rem 0.5rem;
       background: transparent;
@@ -255,10 +263,10 @@
   </style>
 </head>
 <body>
-  <a href="#main-content" class="skip-link">Skip to main content</a>
-  <div class="container" id="main-content" role="main">
-    <h1>🔐 Encrypted Note</h1>
-    <p class="subtitle">Encrypt a short note with a password. Everything happens in your browser - nothing is sent to the server by default.</p>
+  <a href="#page-title" class="skip-link" onkeydown="if(event.key===' '){this.click();event.preventDefault();}">Skip to main content</a>
+  <div class="container" role="main">
+    <h1 id="page-title" tabindex="-1"><span aria-hidden="true">🔐 </span>Note Encryption Tool</h1>
+    <p class="subtitle" tabindex="0">Encrypt a short note with a password. Everything happens in your browser - nothing is sent to the server by default.</p>
 
     <div class="tabs" role="tablist" aria-label="Mode selection">
       <span class="tabs-label" id="mode-label">Mode:</span>
@@ -272,12 +280,14 @@
     <!-- Decrypt Panel - fields injected by JS -->
     <div id="panel-decrypt" class="hidden" role="tabpanel" aria-labelledby="tab-decrypt"></div>
 
-    <div class="error hidden" id="error" role="alert" aria-live="assertive"></div>
+    <div class="error hidden" id="error" role="alert"></div>
+    <div class="error-action-row hidden" id="error-action-container"></div>
     <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+    <div id="status-announcer" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
 
-    <div class="info-box">
-      <strong>How it works:</strong>
-      <ul>
+    <div class="info-box" tabindex="0" role="note" aria-label="How it works: Uses PBKDF2-SHA512 with 200,000 iterations to derive a key from your password. SHA-512 is harder for GPUs to crack than SHA-256. Encrypts with AES-256-GCM which includes integrity check. Stores salt, IV, and ciphertext in URL-safe base64. Everything happens in your browser - nothing is sent to the server by default.">
+      <strong id="how-it-works-title" aria-hidden="true">How it works:</strong>
+      <ul aria-hidden="true">
         <li>Uses PBKDF2-SHA512 (200k iterations) to derive a key from your password</li>
         <li>SHA-512 is harder for GPUs to crack than SHA-256</li>
         <li>Encrypts with AES-256-GCM (includes integrity check)</li>
@@ -310,7 +320,7 @@
         <div class="field" id="password-field">
           <label for="password-encrypt">Password</label>
           <div class="password-row">
-            <button type="button" class="eye-btn" id="toggle-visibility" onclick="togglePasswordVisibility()" aria-label="Show password" aria-pressed="false">
+            <button type="button" class="eye-btn" id="toggle-visibility" onclick="togglePasswordVisibility()" aria-label="Show password">
               <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
               <svg id="eye-off-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
             </button>
@@ -324,7 +334,7 @@
           <div class="strength-label" id="strength-label" aria-live="polite"></div>
         </div>
         <button class="primary encrypt" id="btn-encrypt" onclick="encrypt()">Encrypt &amp; Generate URL</button>
-        <div class="result hidden" id="encrypt-result">
+        <div class="result hidden" id="encrypt-result" tabindex="0" role="region" aria-labelledby="url-result-title">
           <div class="result-header">
             <span class="result-title" id="url-result-title">Generated URL:</span>
             <div id="url-buttons">
@@ -335,9 +345,9 @@
           <div class="url-display" id="generated-url" tabindex="0" role="textbox" aria-readonly="true" aria-label="Generated URL"></div>
           <div class="result-note" id="url-result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
         </div>
-        <div class="secure-area encrypted-area hidden" id="encrypted-content-area">
+        <div class="secure-area encrypted-area hidden" id="encrypted-content-area" tabindex="0" role="region" aria-labelledby="encrypted-content-title">
           <div class="secure-header encrypted">
-            <span class="secure-title" id="encrypted-content-title">🔒 Encrypted Content</span>
+            <span class="secure-title" id="encrypted-content-title"><span aria-hidden="true">🔒 </span>Encrypted Content</span>
             <button class="copy-btn" onclick="copyEncrypted(event)" aria-label="Copy encrypted content to clipboard">Copy</button>
           </div>
           <div class="secure-content" id="encrypted-content" tabindex="0" role="textbox" aria-readonly="true" aria-labelledby="encrypted-content-title"></div>
@@ -355,9 +365,9 @@
           <input type="password" id="password-decrypt" placeholder="Enter the password">
         </div>
         <button class="primary decrypt" id="btn-decrypt" onclick="decrypt()">Decrypt Note</button>
-        <div class="secure-area hidden" id="decrypt-result">
+        <div class="secure-area hidden" id="decrypt-result" tabindex="0" role="region" aria-labelledby="decrypted-text-title">
           <div class="secure-header">
-            <span class="secure-title" id="decrypted-text-title">🔓 Decrypted Note</span>
+            <span class="secure-title" id="decrypted-text-title"><span aria-hidden="true">🔓 </span>Decrypted Note</span>
             <button class="copy-btn" onclick="copyDecrypted(event)" aria-label="Copy decrypted note to clipboard">Copy</button>
           </div>
           <div class="secure-content" id="decrypted-text" tabindex="0" role="textbox" aria-readonly="true" aria-labelledby="decrypted-text-title"></div>
@@ -370,7 +380,8 @@
       initForms();
       
       const hash = window.location.hash.slice(1);
-      if (hash) {
+      // Only treat as encrypted data if it looks like base64 (not element IDs like "page-title")
+      if (hash && hash.length > 20 && /^[A-Za-z0-9_-]+$/.test(hash)) {
         document.getElementById('encrypted-data').value = hash;
         switchTab('decrypt');
       }
@@ -401,9 +412,9 @@
       if (/\d/.test(pw)) score++;
       if (/[^a-zA-Z0-9]/.test(pw)) score++;
       
-      if (score <= 2) return { score, label: 'Weak', color: 'red' };
-      if (score <= 4) return { score, label: 'Moderate', color: 'yellow' };
-      return { score, label: 'Strong', color: 'green' };
+      if (score <= 2) return { score, label: 'Strength: Weak', color: 'red' };
+      if (score <= 4) return { score, label: 'Strength: Moderate', color: 'yellow' };
+      return { score, label: 'Strength: Strong', color: 'green' };
     }
 
     function updateStrength() {
@@ -476,17 +487,41 @@
         eyeIcon.classList.add('hidden');
         eyeOffIcon.classList.remove('hidden');
         toggleBtn.setAttribute('aria-label', 'Hide password');
-        toggleBtn.setAttribute('aria-pressed', 'true');
-        passwordVerified = true; // Visible = verified
+        // Only mark as verified if there's actually a password
+        if (pwField.value.length > 0) {
+          passwordVerified = true;
+        }
+        announceStatus('Password is now visible');
       } else {
-        // Switching to hidden mode (already verified visually)
+        // Switching to hidden mode
         pwField.type = 'password';
         eyeIcon.classList.remove('hidden');
         eyeOffIcon.classList.add('hidden');
         toggleBtn.setAttribute('aria-label', 'Show password');
-        toggleBtn.setAttribute('aria-pressed', 'false');
-        // No confirm field needed - was already verified visually
+        // If password is blank or wasn't verified, add confirm field back
+        if (!passwordVerified || pwField.value.length === 0) {
+          const existingConfirm = document.getElementById('confirm-field');
+          if (!existingConfirm) {
+            const bar = document.getElementById('strength-bar');
+            const confirmDiv = document.createElement('div');
+            confirmDiv.id = 'confirm-field';
+            confirmDiv.innerHTML = `
+              <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;" aria-describedby="password-match">
+              <div class="password-match" id="password-match" aria-live="polite"></div>
+            `;
+            bar.parentElement.insertBefore(confirmDiv, bar);
+          }
+          passwordVerified = false;
+        }
+        announceStatus('Password is now hidden');
       }
+    }
+
+    function announceStatus(message) {
+      const statusEl = document.getElementById('status-announcer');
+      statusEl.textContent = message;
+      // Clear after announcement so it can be repeated
+      setTimeout(() => statusEl.textContent = '', 1000);
     }
 
     function setVerifiedPasswordState() {
@@ -504,7 +539,6 @@
       eyeIcon.classList.remove('hidden');
       eyeOffIcon.classList.add('hidden');
       toggleBtn.setAttribute('aria-label', 'Show password');
-      toggleBtn.setAttribute('aria-pressed', 'false');
       passwordVerified = true;
     }
 
@@ -524,16 +558,30 @@
 
     function showError(msg, actionBtn = null) {
       const el = document.getElementById('error');
-      if (actionBtn) {
-        el.innerHTML = `${msg}<div class="error-action-row"><button class="error-action" onclick="${actionBtn.onclick}">${actionBtn.label}</button></div>`;
-      } else {
-        el.textContent = msg;
-      }
+      const actionContainer = document.getElementById('error-action-container');
+      
+      el.textContent = msg;
       el.classList.remove('hidden');
+      
+      if (actionBtn) {
+        actionContainer.innerHTML = `<button class="error-action" id="error-action-btn" onclick="${actionBtn.onclick}">${actionBtn.label}</button>`;
+        actionContainer.classList.remove('hidden');
+        // Small delay to let alert announce, then focus button
+        setTimeout(() => {
+          document.getElementById('error-action-btn').focus();
+        }, 100);
+      } else {
+        actionContainer.classList.add('hidden');
+        actionContainer.innerHTML = '';
+        el.setAttribute('tabindex', '-1');
+        el.focus();
+      }
     }
 
     function hideError() {
       document.getElementById('error').classList.add('hidden');
+      document.getElementById('error-action-container').classList.add('hidden');
+      document.getElementById('error-action-container').innerHTML = '';
     }
 
     function showToast(msg) {
@@ -620,7 +668,8 @@
         const url = `${window.location.origin}${window.location.pathname}#${base64}`;
         
         // Check if URL is too long (2000 chars is safe limit for most browsers)
-        if (url.length > 2000) {
+        const urlTooLong = url.length > 2000;
+        if (urlTooLong) {
           document.getElementById('url-result-title').textContent = 'URL Not Available:';
           document.getElementById('generated-url').innerHTML = `<span class="url-warning">Encrypted URL would be too long. (${url.length} chars &gt; 2000 chars max)<br>Copy the encrypted content below instead or reduce the content of the note.</span>`;
           document.getElementById('url-buttons').classList.add('hidden');
@@ -636,6 +685,15 @@
         // Always show encrypted content
         document.getElementById('encrypted-content').textContent = base64;
         document.getElementById('encrypted-content-area').classList.remove('hidden');
+        
+        // Move focus to appropriate result panel for screen readers
+        if (urlTooLong) {
+          document.getElementById('encrypted-content-area').focus();
+          showToast('Encrypted! URL too long - use encrypted content below.');
+        } else {
+          document.getElementById('encrypt-result').focus();
+          showToast('Encrypted! URL generated successfully.');
+        }
         
         // Save note for restore, clear the field
         savedNote = note;
@@ -697,6 +755,10 @@
 
         document.getElementById('decrypted-text').textContent = new TextDecoder().decode(plaintext);
         document.getElementById('decrypt-result').classList.remove('hidden');
+        
+        // Move focus to result panel for screen readers
+        document.getElementById('decrypt-result').focus();
+        showToast('Decrypted successfully!');
       } catch (e) {
         showError('Decryption failed. Wrong password or corrupted data.');
       } finally {
