@@ -98,6 +98,7 @@
       color: #cbd5e1;
     }
     .result-note { font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; }
+    .url-warning { color: #facc15; font-size: 0.8rem; }
     .decrypted-text { white-space: pre-wrap; color: #f1f5f9; }
     .secure-area {
       margin-top: 1rem;
@@ -227,7 +228,7 @@
 <body>
   <div class="container">
     <h1>🔐 Encrypted Note</h1>
-    <p class="subtitle">Encrypt a short note with a password. Everything happens in your browser.</p>
+    <p class="subtitle">Encrypt a short note with a password. Everything happens in your browser - nothing is sent to the server by default.</p>
 
     <div class="tabs">
       <span class="tabs-label">Mode:</span>
@@ -251,7 +252,7 @@
         <li>SHA-512 is harder for GPUs to crack than SHA-256</li>
         <li>Encrypts with AES-256-GCM (authenticated encryption)</li>
         <li>Stores salt + IV + ciphertext in URL-safe base64</li>
-        <li>Everything happens in your browser—nothing is sent to any server</li>
+        <li>Everything happens in your browser - nothing is sent to the server by default</li>
       </ul>
     </div>
   </div>
@@ -295,14 +296,14 @@
         <button class="primary encrypt" id="btn-encrypt" onclick="encrypt()">Encrypt &amp; Generate URL</button>
         <div class="result hidden" id="encrypt-result">
           <div class="result-header">
-            <span class="result-title">Generated URL:</span>
-            <div>
+            <span class="result-title" id="url-result-title">Generated URL:</span>
+            <div id="url-buttons">
               <button class="copy-btn" onclick="openUrl()" style="margin-right: 0.5rem;">Open</button>
               <button class="copy-btn" onclick="copyUrl(event)">Copy</button>
             </div>
           </div>
           <div class="url-display" id="generated-url"></div>
-          <div class="result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
+          <div class="result-note" id="url-result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
         </div>
         <div class="secure-area encrypted-area hidden" id="encrypted-content-area">
           <div class="secure-header encrypted">
@@ -526,7 +527,7 @@
         return;
       }
       if (!forceWeak && strength.score < 3) {
-        showError('Weak password — consider 12+ chars, mixed case, numbers, symbols.', {
+        showError('Weak password - consider 12+ chars, mixed case, numbers, symbols.', {
           label: 'Encrypt anyway',
           onclick: 'encrypt(true)'
         });
@@ -564,10 +565,22 @@
           .replace(/=+$/, '');
 
         const url = `${window.location.origin}${window.location.pathname}#${base64}`;
-        document.getElementById('generated-url').textContent = url;
+        
+        // Check if URL is too long (2000 chars is safe limit for most browsers)
+        if (url.length > 2000) {
+          document.getElementById('url-result-title').textContent = 'URL Not Available:';
+          document.getElementById('generated-url').innerHTML = `<span class="url-warning">Encrypted URL would be too long. (${url.length} chars &gt; 2000 chars max)<br>Copy the encrypted content below instead or reduce the content of the note.</span>`;
+          document.getElementById('url-buttons').classList.add('hidden');
+          document.getElementById('url-result-note').textContent = 'Paste the encrypted content into the decrypt field along with the password.';
+        } else {
+          document.getElementById('url-result-title').textContent = 'Generated URL:';
+          document.getElementById('generated-url').textContent = url;
+          document.getElementById('url-buttons').classList.remove('hidden');
+          document.getElementById('url-result-note').textContent = 'Share this URL + password separately. The # fragment is never sent to servers.';
+        }
         document.getElementById('encrypt-result').classList.remove('hidden');
         
-        // Show encrypted content
+        // Always show encrypted content
         document.getElementById('encrypted-content').textContent = base64;
         document.getElementById('encrypted-content-area').classList.remove('hidden');
         
