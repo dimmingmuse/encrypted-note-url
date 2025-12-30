@@ -385,9 +385,10 @@
       if (hash && hash.length > 20 && /^[A-Za-z0-9_-]+$/.test(hash)) {
         document.getElementById('encrypted-data').value = hash;
         switchTab('decrypt', false); // Don't announce yet
-        // Update titles for decrypt mode
+        // Update titles and subtitle for decrypt mode
         document.title = 'Note Encryption Tool - Decrypt Mode';
         document.getElementById('page-title').innerHTML = '<span aria-hidden="true">🔐 </span>Note Encryption Tool - Decrypt Mode';
+        document.querySelector('.subtitle').textContent = 'Decrypt an encrypted note with the password. Everything happens in your browser - nothing is sent to the server by default.';
         // Focus password field after short delay for screen reader
         setTimeout(() => {
           document.getElementById('password-decrypt').focus();
@@ -405,15 +406,18 @@
       document.getElementById('panel-decrypt').classList.toggle('hidden', tab !== 'decrypt');
       hideError();
       
-      // Update titles to reflect current mode
+      // Update titles and subtitle to reflect current mode
       const title = document.getElementById('page-title');
+      const subtitle = document.querySelector('.subtitle');
       if (tab === 'decrypt') {
         document.title = 'Note Encryption Tool - Decrypt Mode';
         title.innerHTML = '<span aria-hidden="true">🔐 </span>Note Encryption Tool - Decrypt Mode';
+        subtitle.textContent = 'Decrypt an encrypted note with the password. Everything happens in your browser - nothing is sent to the server by default.';
         if (announce) announceStatus('Switched to decrypt mode');
       } else {
         document.title = 'Note Encryption Tool';
         title.innerHTML = '<span aria-hidden="true">🔐 </span>Note Encryption Tool';
+        subtitle.textContent = 'Encrypt a short note with a password. Everything happens in your browser - nothing is sent to the server by default.';
         if (announce) announceStatus('Switched to encrypt mode');
       }
     }
