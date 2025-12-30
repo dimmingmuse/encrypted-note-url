@@ -131,55 +131,11 @@
       <button class="tab" id="tab-decrypt" onclick="switchTab('decrypt')">Decrypt</button>
     </div>
 
-    <!-- Encrypt Panel -->
-    <div id="panel-encrypt">
-      <div class="field">
-        <label for="note">Your Note</label>
-        <textarea id="note" placeholder="Enter your secret note..." oninput="updateCharCount()"></textarea>
-        <div class="char-count"><span id="char-count">0</span> characters</div>
-      </div>
+    <!-- Encrypt Panel - fields injected by JS -->
+    <div id="panel-encrypt"></div>
 
-      <div class="field">
-        <label for="password-encrypt">Password</label>
-        <input type="password" id="password-encrypt" placeholder="Enter a strong password" oninput="updateStrength()">
-        <div class="strength-bar" id="strength-bar"></div>
-        <div class="strength-label" id="strength-label"></div>
-      </div>
-
-      <button class="primary encrypt" id="btn-encrypt" onclick="encrypt()">Encrypt &amp; Generate URL</button>
-
-      <div class="result hidden" id="encrypt-result">
-        <div class="result-header">
-          <span class="result-title">Generated URL:</span>
-          <div>
-            <button class="copy-btn" onclick="openUrl()" style="margin-right: 0.5rem;">Open</button>
-            <button class="copy-btn" onclick="copyUrl()">Copy</button>
-          </div>
-        </div>
-        <div class="url-display" id="generated-url"></div>
-        <div class="result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
-      </div>
-    </div>
-
-    <!-- Decrypt Panel -->
-    <div id="panel-decrypt" class="hidden">
-      <div class="field">
-        <label for="encrypted-data">Encrypted Data or URL</label>
-        <textarea id="encrypted-data" placeholder="Paste the URL or encrypted string..." style="height: 6rem; font-family: ui-monospace, monospace; font-size: 0.875rem;"></textarea>
-      </div>
-
-      <div class="field">
-        <label for="password-decrypt">Password</label>
-        <input type="password" id="password-decrypt" placeholder="Enter the password">
-      </div>
-
-      <button class="primary decrypt" id="btn-decrypt" onclick="decrypt()">Decrypt Note</button>
-
-      <div class="result success hidden" id="decrypt-result">
-        <span class="result-title" style="display: block; margin-bottom: 0.5rem;">Decrypted Note:</span>
-        <div class="decrypted-text" id="decrypted-text"></div>
-      </div>
-    </div>
+    <!-- Decrypt Panel - fields injected by JS -->
+    <div id="panel-decrypt" class="hidden"></div>
 
     <div class="error hidden" id="error"></div>
 
@@ -196,8 +152,57 @@
   </div>
 
   <script>
-    // Check for encrypted data in URL hash on load
+    // Generate form fields dynamically to prevent browser tab restore
+    function initForms() {
+      // Encrypt panel
+      document.getElementById('panel-encrypt').innerHTML = `
+        <div class="field">
+          <label for="note">Your Note</label>
+          <textarea id="note" placeholder="Enter your secret note..." oninput="updateCharCount()"></textarea>
+          <div class="char-count"><span id="char-count">0</span> characters</div>
+        </div>
+        <div class="field">
+          <label for="password-encrypt">Password</label>
+          <input type="password" id="password-encrypt" placeholder="Enter a strong password" oninput="updateStrength()">
+          <div class="strength-bar" id="strength-bar"></div>
+          <div class="strength-label" id="strength-label"></div>
+        </div>
+        <button class="primary encrypt" id="btn-encrypt" onclick="encrypt()">Encrypt &amp; Generate URL</button>
+        <div class="result hidden" id="encrypt-result">
+          <div class="result-header">
+            <span class="result-title">Generated URL:</span>
+            <div>
+              <button class="copy-btn" onclick="openUrl()" style="margin-right: 0.5rem;">Open</button>
+              <button class="copy-btn" onclick="copyUrl()">Copy</button>
+            </div>
+          </div>
+          <div class="url-display" id="generated-url"></div>
+          <div class="result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
+        </div>
+      `;
+
+      // Decrypt panel
+      document.getElementById('panel-decrypt').innerHTML = `
+        <div class="field">
+          <label for="encrypted-data">Encrypted Data or URL</label>
+          <textarea id="encrypted-data" placeholder="Paste the URL or encrypted string..." style="height: 6rem; font-family: ui-monospace, monospace; font-size: 0.875rem;"></textarea>
+        </div>
+        <div class="field">
+          <label for="password-decrypt">Password</label>
+          <input type="password" id="password-decrypt" placeholder="Enter the password">
+        </div>
+        <button class="primary decrypt" id="btn-decrypt" onclick="decrypt()">Decrypt Note</button>
+        <div class="result success hidden" id="decrypt-result">
+          <span class="result-title" style="display: block; margin-bottom: 0.5rem;">Decrypted Note:</span>
+          <div class="decrypted-text" id="decrypted-text"></div>
+        </div>
+      `;
+    }
+
+    // Initialize on load, then check for hash
     window.addEventListener('DOMContentLoaded', () => {
+      initForms();
+      
       const hash = window.location.hash.slice(1);
       if (hash) {
         document.getElementById('encrypted-data').value = hash;
