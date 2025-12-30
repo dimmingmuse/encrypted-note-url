@@ -104,6 +104,7 @@
     }
     .url-display:focus { outline: 2px solid #10b981; outline-offset: 2px; }
     .result-note { font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem; }
+    .result-note:focus { outline: 2px solid #10b981; outline-offset: 2px; border-radius: 0.25rem; }
     .url-warning { color: #fde047; font-size: 0.8rem; }
     .decrypted-text { white-space: pre-wrap; color: #f1f5f9; }
     .secure-area {
@@ -343,7 +344,7 @@
             </div>
           </div>
           <div class="url-display" id="generated-url" tabindex="0" role="textbox" aria-readonly="true" aria-label="Generated URL"></div>
-          <div class="result-note" id="url-result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
+          <div class="result-note" id="url-result-note" tabindex="0">Share this URL + password separately. The # fragment is never sent to servers.</div>
         </div>
         <div class="secure-area encrypted-area hidden" id="encrypted-content-area" tabindex="0" role="region" aria-labelledby="encrypted-content-title">
           <div class="secure-header encrypted">
@@ -383,11 +384,19 @@
       // Only treat as encrypted data if it looks like base64 (not element IDs like "page-title")
       if (hash && hash.length > 20 && /^[A-Za-z0-9_-]+$/.test(hash)) {
         document.getElementById('encrypted-data').value = hash;
-        switchTab('decrypt');
+        switchTab('decrypt', false); // Don't announce yet
+        // Update titles for decrypt mode
+        document.title = 'Note Encryption Tool - Decrypt Mode';
+        document.getElementById('page-title').innerHTML = '<span aria-hidden="true">🔐 </span>Note Encryption Tool - Decrypt Mode';
+        // Focus password field after short delay for screen reader
+        setTimeout(() => {
+          document.getElementById('password-decrypt').focus();
+          announceStatus('Decrypt mode. Encrypted data loaded. Enter password to decrypt.');
+        }, 200);
       }
     });
 
-    function switchTab(tab) {
+    function switchTab(tab, announce = true) {
       document.getElementById('tab-encrypt').classList.toggle('active', tab === 'encrypt');
       document.getElementById('tab-decrypt').classList.toggle('active', tab === 'decrypt');
       document.getElementById('tab-encrypt').setAttribute('aria-selected', tab === 'encrypt');
@@ -395,6 +404,18 @@
       document.getElementById('panel-encrypt').classList.toggle('hidden', tab !== 'encrypt');
       document.getElementById('panel-decrypt').classList.toggle('hidden', tab !== 'decrypt');
       hideError();
+      
+      // Update titles to reflect current mode
+      const title = document.getElementById('page-title');
+      if (tab === 'decrypt') {
+        document.title = 'Note Encryption Tool - Decrypt Mode';
+        title.innerHTML = '<span aria-hidden="true">🔐 </span>Note Encryption Tool - Decrypt Mode';
+        if (announce) announceStatus('Switched to decrypt mode');
+      } else {
+        document.title = 'Note Encryption Tool';
+        title.innerHTML = '<span aria-hidden="true">🔐 </span>Note Encryption Tool';
+        if (announce) announceStatus('Switched to encrypt mode');
+      }
     }
 
     function updateCharCount() {
@@ -548,12 +569,17 @@
         updateCharCount();
         document.getElementById('btn-restore').classList.add('hidden');
         savedNote = null;
+        // Move focus to the restored note
+        document.getElementById('note').focus();
+        announceStatus('Note restored');
       }
     }
 
     function clearNote() {
       document.getElementById('note').value = '';
       updateCharCount();
+      document.getElementById('note').focus();
+      announceStatus('Note cleared');
     }
 
     function showError(msg, actionBtn = null) {
@@ -773,6 +799,7 @@
       e.target.textContent = '✓ Copied!';
       setTimeout(() => e.target.textContent = 'Copy', 2000);
       showToast('✓ URL copied to clipboard');
+      announceStatus('URL copied to clipboard');
     }
 
     async function copyDecrypted(e) {
@@ -781,6 +808,7 @@
       e.target.textContent = '✓ Copied!';
       setTimeout(() => e.target.textContent = 'Copy', 2000);
       showToast('✓ Decrypted note copied to clipboard');
+      announceStatus('Decrypted note copied to clipboard');
     }
 
     async function copyEncrypted(e) {
@@ -789,6 +817,7 @@
       e.target.textContent = '✓ Copied!';
       setTimeout(() => e.target.textContent = 'Copy', 2000);
       showToast('✓ Encrypted content copied to clipboard');
+      announceStatus('Encrypted content copied to clipboard');
     }
 
     function openUrl() {
