@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Note Encryption Tool</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Encrypt and decrypt notes securely in your browser">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Encrypt Note">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -827,6 +837,13 @@
     function openUrl() {
       const url = document.getElementById('generated-url').textContent;
       window.open(url, '_blank');
+    }
+
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Service worker registration failed - app still works, just not offline
+      });
     }
   </script>
 </body>
