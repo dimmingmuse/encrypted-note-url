@@ -512,32 +512,14 @@
         eyeIcon.classList.add('hidden');
         eyeOffIcon.classList.remove('hidden');
         toggleBtn.setAttribute('aria-label', 'Hide password');
-        // Only mark as verified if there's actually a password
-        if (pwField.value.length > 0) {
-          passwordVerified = true;
-        }
         announceStatus('Password is now visible');
       } else {
-        // Switching to hidden mode
+        // Switching to hidden mode - verified since they just saw it
         pwField.type = 'password';
         eyeIcon.classList.remove('hidden');
         eyeOffIcon.classList.add('hidden');
         toggleBtn.setAttribute('aria-label', 'Show password');
-        // If password is blank or wasn't verified, add confirm field back
-        if (!passwordVerified || pwField.value.length === 0) {
-          const existingConfirm = document.getElementById('confirm-field');
-          if (!existingConfirm) {
-            const bar = document.getElementById('strength-bar');
-            const confirmDiv = document.createElement('div');
-            confirmDiv.id = 'confirm-field';
-            confirmDiv.innerHTML = `
-              <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;" aria-describedby="password-match">
-              <div class="password-match" id="password-match" aria-live="polite"></div>
-            `;
-            bar.parentElement.insertBefore(confirmDiv, bar);
-          }
-          passwordVerified = false;
-        }
+        passwordVerified = true;
         announceStatus('Password is now hidden');
       }
     }
@@ -586,7 +568,7 @@
       announceStatus('Note cleared');
     }
 
-    function showError(msg, actionBtn = null) {
+    function showError(msg, actionBtn = null, skipFocus = false) {
       const el = document.getElementById('error');
       const actionContainer = document.getElementById('error-action-container');
       
@@ -603,8 +585,10 @@
       } else {
         actionContainer.classList.add('hidden');
         actionContainer.innerHTML = '';
-        el.setAttribute('tabindex', '-1');
-        el.focus();
+        if (!skipFocus) {
+          el.setAttribute('tabindex', '-1');
+          el.focus();
+        }
       }
     }
 
@@ -653,7 +637,13 @@
       document.getElementById('encrypted-content-area').classList.add('hidden');
 
       if (!note || !password) {
-        showError('Please enter both a note and password');
+        showError('Please enter both a note and password', null, true);
+        // Focus the first empty field
+        if (!note) {
+          document.getElementById('note').focus();
+        } else {
+          document.getElementById('password-encrypt').focus();
+        }
         return;
       }
       
@@ -661,7 +651,8 @@
       if (!passwordVerified && confirmField) {
         const confirm = confirmField.value;
         if (password !== confirm) {
-          showError('Passwords do not match');
+          showError('Passwords do not match', null, true);
+          document.getElementById('password-confirm').focus();
           return;
         }
       }
@@ -757,7 +748,13 @@
       }
 
       if (!data || !password) {
-        showError('Please enter both encrypted data and password');
+        showError('Please enter both encrypted data and password', null, true);
+        // Focus the first empty field
+        if (!data) {
+          document.getElementById('encrypted-data').focus();
+        } else {
+          document.getElementById('password-decrypt').focus();
+        }
         return;
       }
 
@@ -790,7 +787,10 @@
         document.getElementById('decrypt-result').focus();
         showToast('Decrypted successfully!');
       } catch (e) {
-        showError('Decryption failed. Wrong password or corrupted data.');
+        showError('Decryption failed. Wrong password or corrupted data.', null, true);
+        // Clear and focus password field so user can try again
+        document.getElementById('password-decrypt').value = '';
+        document.getElementById('password-decrypt').focus();
       } finally {
         btn.disabled = false;
         btn.textContent = 'Decrypt Note';
