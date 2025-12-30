@@ -250,7 +250,7 @@
       <ul>
         <li>Uses PBKDF2-SHA512 (200k iterations) to derive a key from your password</li>
         <li>SHA-512 is harder for GPUs to crack than SHA-256</li>
-        <li>Encrypts with AES-256-GCM (authenticated encryption)</li>
+        <li>Encrypts with AES-256-GCM (includes integrity check)</li>
         <li>Stores salt + IV + ciphertext in URL-safe base64</li>
         <li>Everything happens in your browser - nothing is sent to the server by default</li>
       </ul>
