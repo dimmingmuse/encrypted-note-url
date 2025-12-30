@@ -376,6 +376,7 @@
 
     function updateStrength() {
       const pw = document.getElementById('password-encrypt').value;
+      const pwField = document.getElementById('password-encrypt');
       const strength = getStrength(pw);
       const bar = document.getElementById('strength-bar');
       const label = document.getElementById('strength-label');
@@ -386,6 +387,22 @@
       
       label.textContent = strength.label;
       label.className = 'strength-label ' + strength.color;
+      
+      // If password was verified but user is now changing it in hidden mode, re-require confirmation
+      if (passwordVerified && pwField.type === 'password') {
+        const confirmField = document.getElementById('confirm-field');
+        if (!confirmField) {
+          // Add confirmation field back
+          const confirmDiv = document.createElement('div');
+          confirmDiv.id = 'confirm-field';
+          confirmDiv.innerHTML = `
+            <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;">
+            <div class="password-match" id="password-match"></div>
+          `;
+          bar.parentElement.insertBefore(confirmDiv, bar);
+        }
+        passwordVerified = false;
+      }
       
       // Also check match if confirm field exists
       checkMatch();
