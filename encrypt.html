@@ -526,13 +526,6 @@
         showError('Please enter both a note and password');
         return;
       }
-      if (!forceWeak && strength.score < 3) {
-        showError('Weak password - consider 12+ chars, mixed case, numbers, symbols.', {
-          label: 'Encrypt anyway',
-          onclick: 'encrypt(true)'
-        });
-        return;
-      }
       
       // Check password confirmation if not yet verified
       if (!passwordVerified && confirmField) {
@@ -541,6 +534,14 @@
           showError('Passwords do not match');
           return;
         }
+      }
+      
+      if (!forceWeak && strength.score < 3) {
+        showError('Weak password - consider 12+ chars, mixed case, numbers, symbols.', {
+          label: 'Encrypt anyway',
+          onclick: 'encrypt(true)'
+        });
+        return;
       }
 
       const btn = document.getElementById('btn-encrypt');
