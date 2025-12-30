@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔐 Encrypted Note</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .container { max-width: 32rem; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .tab {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .tab.active { background: #10b981; color: white; }
+    .tab:not(.active) { background: #334155; color: #cbd5e1; }
+    .tab:not(.active):hover { background: #475569; }
+    .field { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.875rem; margin-bottom: 0.25rem; }
+    textarea, input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 0.5rem;
+      color: #e2e8f0;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    textarea:focus, input:focus { outline: none; border-color: #10b981; }
+    textarea { resize: none; height: 8rem; }
+    .char-count { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+    .strength-bar { display: flex; gap: 0.25rem; margin-top: 0.5rem; }
+    .strength-segment { height: 4px; flex: 1; border-radius: 2px; background: #334155; }
+    .strength-segment.filled.red { background: #ef4444; }
+    .strength-segment.filled.yellow { background: #eab308; }
+    .strength-segment.filled.green { background: #10b981; }
+    .strength-label { font-size: 0.75rem; margin-top: 0.25rem; }
+    .strength-label.red { color: #f87171; }
+    .strength-label.yellow { color: #facc15; }
+    .strength-label.green { color: #34d399; }
+    button.primary {
+      width: 100%;
+      padding: 0.625rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button.primary.encrypt { background: #10b981; color: white; }
+    button.primary.encrypt:hover { background: #34d399; }
+    button.primary.decrypt { background: #3b82f6; color: white; }
+    button.primary.decrypt:hover { background: #60a5fa; }
+    button.primary:disabled { background: #475569; cursor: wait; }
+    .result {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 0.5rem;
+    }
+    .result.success { border-color: #10b981; }
+    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .result-title { font-size: 0.875rem; color: #34d399; }
+    .copy-btn {
+      padding: 0.25rem 0.5rem;
+      background: #334155;
+      border: none;
+      border-radius: 0.25rem;
+      color: #cbd5e1;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .copy-btn:hover { background: #475569; }
+    .url-display {
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      background: #0f172a;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      word-break: break-all;
+      color: #cbd5e1;
+    }
+    .result-note { font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; }
+    .decrypted-text { white-space: pre-wrap; color: #f1f5f9; }
+    .error {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: rgba(127, 29, 29, 0.5);
+      border: 1px solid #b91c1c;
+      border-radius: 0.5rem;
+      color: #fca5a5;
+      font-size: 0.875rem;
+    }
+    .info-box {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .info-box strong { display: block; margin-bottom: 0.5rem; }
+    .info-box ul { margin-left: 1rem; }
+    .info-box li { margin-bottom: 0.25rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Encrypted Note</h1>
+    <p class="subtitle">Encrypt a short note with a password. Everything happens in your browser.</p>
+
+    <div class="tabs">
+      <button class="tab active" id="tab-encrypt" onclick="switchTab('encrypt')">Encrypt</button>
+      <button class="tab" id="tab-decrypt" onclick="switchTab('decrypt')">Decrypt</button>
+    </div>
+
+    <!-- Encrypt Panel -->
+    <div id="panel-encrypt">
+      <div class="field">
+        <label for="note">Your Note</label>
+        <textarea id="note" placeholder="Enter your secret note..." oninput="updateCharCount()"></textarea>
+        <div class="char-count"><span id="char-count">0</span> characters</div>
+      </div>
+
+      <div class="field">
+        <label for="password-encrypt">Password</label>
+        <input type="password" id="password-encrypt" placeholder="Enter a strong password" oninput="updateStrength()">
+        <div class="strength-bar" id="strength-bar"></div>
+        <div class="strength-label" id="strength-label"></div>
+      </div>
+
+      <button class="primary encrypt" id="btn-encrypt" onclick="encrypt()">Encrypt &amp; Generate URL</button>
+
+      <div class="result hidden" id="encrypt-result">
+        <div class="result-header">
+          <span class="result-title">Generated URL:</span>
+          <button class="copy-btn" onclick="copyUrl()">Copy</button>
+        </div>
+        <div class="url-display" id="generated-url"></div>
+        <div class="result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
+      </div>
+    </div>
+
+    <!-- Decrypt Panel -->
+    <div id="panel-decrypt" class="hidden">
+      <div class="field">
+        <label for="encrypted-data">Encrypted Data or URL</label>
+        <textarea id="encrypted-data" placeholder="Paste the URL or encrypted string..." style="height: 6rem; font-family: ui-monospace, monospace; font-size: 0.875rem;"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="password-decrypt">Password</label>
+        <input type="password" id="password-decrypt" placeholder="Enter the password">
+      </div>
+
+      <button class="primary decrypt" id="btn-decrypt" onclick="decrypt()">Decrypt Note</button>
+
+      <div class="result success hidden" id="decrypt-result">
+        <span class="result-title" style="display: block; margin-bottom: 0.5rem;">Decrypted Note:</span>
+        <div class="decrypted-text" id="decrypted-text"></div>
+      </div>
+    </div>
+
+    <div class="error hidden" id="error"></div>
+
+    <div class="info-box">
+      <strong>How it works:</strong>
+      <ul>
+        <li>Uses PBKDF2-SHA512 (200k iterations) to derive a key from your password</li>
+        <li>SHA-512 is harder for GPUs to crack than SHA-256</li>
+        <li>Encrypts with AES-256-GCM (authenticated encryption)</li>
+        <li>Stores salt + IV + ciphertext in URL-safe base64</li>
+        <li>Everything happens in your browser—nothing is sent to any server</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Check for encrypted data in URL hash on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        document.getElementById('encrypted-data').value = hash;
+        switchTab('decrypt');
+      }
+    });
+
+    function switchTab(tab) {
+      document.getElementById('tab-encrypt').classList.toggle('active', tab === 'encrypt');
+      document.getElementById('tab-decrypt').classList.toggle('active', tab === 'decrypt');
+      document.getElementById('panel-encrypt').classList.toggle('hidden', tab !== 'encrypt');
+      document.getElementById('panel-decrypt').classList.toggle('hidden', tab !== 'decrypt');
+      hideError();
+    }
+
+    function updateCharCount() {
+      const count = document.getElementById('note').value.length;
+      document.getElementById('char-count').textContent = count;
+    }
+
+    function getStrength(pw) {
+      if (!pw) return { score: 0, label: '', color: '' };
+      let score = 0;
+      if (pw.length >= 8) score++;
+      if (pw.length >= 12) score++;
+      if (pw.length >= 16) score++;
+      if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+      if (/\d/.test(pw)) score++;
+      if (/[^a-zA-Z0-9]/.test(pw)) score++;
+      
+      if (score <= 2) return { score, label: 'Weak', color: 'red' };
+      if (score <= 4) return { score, label: 'Moderate', color: 'yellow' };
+      return { score, label: 'Strong', color: 'green' };
+    }
+
+    function updateStrength() {
+      const pw = document.getElementById('password-encrypt').value;
+      const strength = getStrength(pw);
+      const bar = document.getElementById('strength-bar');
+      const label = document.getElementById('strength-label');
+      
+      bar.innerHTML = [1,2,3,4,5,6].map(i => 
+        `<div class="strength-segment ${i <= strength.score ? 'filled ' + strength.color : ''}"></div>`
+      ).join('');
+      
+      label.textContent = strength.label;
+      label.className = 'strength-label ' + strength.color;
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('error').classList.add('hidden');
+    }
+
+    async function deriveKey(password, salt) {
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(password),
+        'PBKDF2',
+        false,
+        ['deriveKey']
+      );
+      return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-512' },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+    }
+
+    async function encrypt() {
+      const note = document.getElementById('note').value.trim();
+      const password = document.getElementById('password-encrypt').value;
+      const strength = getStrength(password);
+
+      hideError();
+      document.getElementById('encrypt-result').classList.add('hidden');
+
+      if (!note || !password) {
+        showError('Please enter both a note and password');
+        return;
+      }
+      if (strength.score < 3) {
+        showError('Please use a stronger password (12+ chars, mixed case, numbers, symbols)');
+        return;
+      }
+
+      const btn = document.getElementById('btn-encrypt');
+      btn.disabled = true;
+      btn.textContent = 'Encrypting...';
+
+      try {
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await deriveKey(password, salt);
+
+        const ciphertext = await crypto.subtle.encrypt(
+          { name: 'AES-GCM', iv },
+          key,
+          new TextEncoder().encode(note)
+        );
+
+        const combined = new Uint8Array([...salt, ...iv, ...new Uint8Array(ciphertext)]);
+        const base64 = btoa(String.fromCharCode(...combined))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/, '');
+
+        const url = `${window.location.origin}${window.location.pathname}#${base64}`;
+        document.getElementById('generated-url').textContent = url;
+        document.getElementById('encrypt-result').classList.remove('hidden');
+      } catch (e) {
+        showError('Encryption failed: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Encrypt & Generate URL';
+      }
+    }
+
+    async function decrypt() {
+      let data = document.getElementById('encrypted-data').value.trim();
+      const password = document.getElementById('password-decrypt').value;
+
+      hideError();
+      document.getElementById('decrypt-result').classList.add('hidden');
+
+      // Extract hash from URL if pasted
+      if (data.includes('#')) {
+        data = data.split('#').pop();
+      }
+
+      if (!data || !password) {
+        showError('Please enter both encrypted data and password');
+        return;
+      }
+
+      const btn = document.getElementById('btn-decrypt');
+      btn.disabled = true;
+      btn.textContent = 'Decrypting...';
+
+      try {
+        // Restore standard base64
+        let base64 = data.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+
+        const combined = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const salt = combined.slice(0, 16);
+        const iv = combined.slice(16, 28);
+        const ciphertext = combined.slice(28);
+
+        const key = await deriveKey(password, salt);
+
+        const plaintext = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv },
+          key,
+          ciphertext
+        );
+
+        document.getElementById('decrypted-text').textContent = new TextDecoder().decode(plaintext);
+        document.getElementById('decrypt-result').classList.remove('hidden');
+      } catch (e) {
+        showError('Decryption failed. Wrong password or corrupted data.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Decrypt Note';
+      }
+    }
+
+    async function copyUrl() {
+      const url = document.getElementById('generated-url').textContent;
+      await navigator.clipboard.writeText(url);
+      const btn = event.target;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
+  </script>
+</body>
+</html>
