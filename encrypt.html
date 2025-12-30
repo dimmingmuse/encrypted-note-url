@@ -325,10 +325,10 @@
               <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
               <svg id="eye-off-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
             </button>
-            <input type="password" id="password-encrypt" placeholder="Enter a strong password" oninput="updateStrength()" aria-describedby="strength-label">
+            <input type="password" id="password-encrypt" placeholder="Enter a strong password" oninput="updateStrength()" aria-describedby="strength-label" onkeydown="if(event.key==='Enter'){encrypt();event.preventDefault();}">
           </div>
           <div id="confirm-field">
-            <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;" aria-describedby="password-match">
+            <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;" aria-describedby="password-match" onkeydown="if(event.key==='Enter'){encrypt();event.preventDefault();}">
             <div class="password-match" id="password-match" aria-live="polite"></div>
           </div>
           <div class="strength-bar" id="strength-bar" role="img" aria-hidden="true"></div>
@@ -363,7 +363,7 @@
         </div>
         <div class="field">
           <label for="password-decrypt">Password</label>
-          <input type="password" id="password-decrypt" placeholder="Enter the password">
+          <input type="password" id="password-decrypt" placeholder="Enter the password" onkeydown="if(event.key==='Enter'){decrypt();event.preventDefault();}">
         </div>
         <button class="primary decrypt" id="btn-decrypt" onclick="decrypt()">Decrypt Note</button>
         <div class="secure-area hidden" id="decrypt-result" tabindex="0" role="region" aria-labelledby="decrypted-text-title">
@@ -464,7 +464,7 @@
           const confirmDiv = document.createElement('div');
           confirmDiv.id = 'confirm-field';
           confirmDiv.innerHTML = `
-            <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;" aria-describedby="password-match">
+            <input type="password" id="password-confirm" placeholder="Confirm password" oninput="checkMatch()" style="margin-top: 0.5rem;" aria-describedby="password-match" onkeydown="if(event.key==='Enter'){encrypt();event.preventDefault();}">
             <div class="password-match" id="password-match" aria-live="polite"></div>
           `;
           bar.parentElement.insertBefore(confirmDiv, bar);
