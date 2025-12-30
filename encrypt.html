@@ -197,6 +197,23 @@
       cursor: pointer;
     }
     .error-action:hover { background: rgba(252, 165, 165, 0.1); }
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.625rem 1rem;
+      background: #10b981;
+      color: white;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .toast.visible { opacity: 1; }
   </style>
 </head>
 <body>
@@ -216,6 +233,7 @@
     <div id="panel-decrypt" class="hidden"></div>
 
     <div class="error hidden" id="error"></div>
+    <div class="toast hidden" id="toast"></div>
 
     <div class="info-box">
       <strong>How it works:</strong>
@@ -441,6 +459,17 @@
       document.getElementById('error').classList.add('hidden');
     }
 
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('visible'), 10);
+      setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => toast.classList.add('hidden'), 200);
+      }, 2000);
+    }
+
     async function deriveKey(password, salt) {
       const keyMaterial = await crypto.subtle.importKey(
         'raw',
@@ -592,6 +621,7 @@
       const btn = event.target;
       btn.textContent = '✓ Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
+      showToast('✓ URL copied to clipboard');
     }
 
     async function copyDecrypted() {
@@ -600,6 +630,7 @@
       const btn = event.target;
       btn.textContent = '✓ Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
+      showToast('✓ Decrypted note copied to clipboard');
     }
 
     async function copyEncrypted() {
@@ -608,6 +639,7 @@
       const btn = event.target;
       btn.textContent = '✓ Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
+      showToast('✓ Encrypted content copied to clipboard');
     }
 
     function openUrl() {
