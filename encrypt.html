@@ -98,6 +98,46 @@
     }
     .result-note { font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; }
     .decrypted-text { white-space: pre-wrap; color: #f1f5f9; }
+    .secure-area {
+      margin-top: 1rem;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      border: 1px solid #10b981;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+    }
+    .secure-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: rgba(16, 185, 129, 0.15);
+      border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .secure-header.encrypted {
+      background: rgba(59, 130, 246, 0.15);
+      border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .secure-area.encrypted-area {
+      border-color: #3b82f6;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    }
+    .secure-header.encrypted .secure-title {
+      color: #60a5fa;
+    }
+    .secure-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #34d399;
+    }
+    .secure-content {
+      padding: 0.75rem;
+      white-space: pre-wrap;
+      color: #f1f5f9;
+      font-family: ui-monospace, monospace;
+      font-size: 0.875rem;
+      max-height: 12rem;
+      overflow-y: auto;
+    }
     .error {
       margin-top: 1rem;
       padding: 0.75rem;
@@ -146,6 +186,17 @@
       cursor: pointer;
     }
     .small-btn:hover { background: #475569; color: #cbd5e1; }
+    .error-action-row { text-align: center; margin-top: 0.5rem; }
+    .error-action {
+      padding: 0.25rem 0.5rem;
+      background: transparent;
+      border: 1px solid #fca5a5;
+      border-radius: 0.25rem;
+      color: #fca5a5;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .error-action:hover { background: rgba(252, 165, 165, 0.1); }
   </style>
 </head>
 <body>
@@ -221,6 +272,13 @@
           <div class="url-display" id="generated-url"></div>
           <div class="result-note">Share this URL + password separately. The # fragment is never sent to servers.</div>
         </div>
+        <div class="secure-area encrypted-area hidden" id="encrypted-content-area">
+          <div class="secure-header encrypted">
+            <span class="secure-title">🔒 Encrypted Content</span>
+            <button class="copy-btn" onclick="copyEncrypted()">Copy</button>
+          </div>
+          <div class="secure-content" id="encrypted-content"></div>
+        </div>
       `;
 
       // Decrypt panel
@@ -234,9 +292,12 @@
           <input type="password" id="password-decrypt" placeholder="Enter the password">
         </div>
         <button class="primary decrypt" id="btn-decrypt" onclick="decrypt()">Decrypt Note</button>
-        <div class="result success hidden" id="decrypt-result">
-          <span class="result-title" style="display: block; margin-bottom: 0.5rem;">Decrypted Note:</span>
-          <div class="decrypted-text" id="decrypted-text"></div>
+        <div class="secure-area hidden" id="decrypt-result">
+          <div class="secure-header">
+            <span class="secure-title">🔓 Decrypted Note</span>
+            <button class="copy-btn" onclick="copyDecrypted()">Copy</button>
+          </div>
+          <div class="secure-content" id="decrypted-text"></div>
         </div>
       `;
     }
@@ -366,9 +427,13 @@
       updateCharCount();
     }
 
-    function showError(msg) {
+    function showError(msg, actionBtn = null) {
       const el = document.getElementById('error');
-      el.textContent = msg;
+      if (actionBtn) {
+        el.innerHTML = `${msg}<div class="error-action-row"><button class="error-action" onclick="${actionBtn.onclick}">${actionBtn.label}</button></div>`;
+      } else {
+        el.textContent = msg;
+      }
       el.classList.remove('hidden');
     }
 
@@ -393,7 +458,7 @@
       );
     }
 
-    async function encrypt() {
+    async function encrypt(forceWeak = false) {
       const note = document.getElementById('note').value.trim();
       const password = document.getElementById('password-encrypt').value;
       const confirmField = document.getElementById('password-confirm');
@@ -401,13 +466,17 @@
 
       hideError();
       document.getElementById('encrypt-result').classList.add('hidden');
+      document.getElementById('encrypted-content-area').classList.add('hidden');
 
       if (!note || !password) {
         showError('Please enter both a note and password');
         return;
       }
-      if (strength.score < 3) {
-        showError('Please use a stronger password (12+ chars, mixed case, numbers, symbols)');
+      if (!forceWeak && strength.score < 3) {
+        showError('Weak password — consider 12+ chars, mixed case, numbers, symbols.', {
+          label: 'Encrypt anyway',
+          onclick: 'encrypt(true)'
+        });
         return;
       }
       
@@ -444,6 +513,10 @@
         const url = `${window.location.origin}${window.location.pathname}#${base64}`;
         document.getElementById('generated-url').textContent = url;
         document.getElementById('encrypt-result').classList.remove('hidden');
+        
+        // Show encrypted content
+        document.getElementById('encrypted-content').textContent = base64;
+        document.getElementById('encrypted-content-area').classList.remove('hidden');
         
         // Save note for restore, clear the field
         savedNote = note;
@@ -516,6 +589,22 @@
     async function copyUrl() {
       const url = document.getElementById('generated-url').textContent;
       await navigator.clipboard.writeText(url);
+      const btn = event.target;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
+
+    async function copyDecrypted() {
+      const text = document.getElementById('decrypted-text').textContent;
+      await navigator.clipboard.writeText(text);
+      const btn = event.target;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
+
+    async function copyEncrypted() {
+      const text = document.getElementById('encrypted-content').textContent;
+      await navigator.clipboard.writeText(text);
       const btn = event.target;
       btn.textContent = '✓ Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
